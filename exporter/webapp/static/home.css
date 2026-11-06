@@ -1213,3 +1213,38 @@ label {
     transform: translate(-50%, -50%) rotate(360deg);
   }
 }
+
+/* Match the hydrated pane styles before the deferred scripts initialize.
+   These root classes are handed off atomically to each pane in home.js. */
+html.startup-history-hidden .history-pane,
+html.startup-settings-hidden .settings-pane {
+  display: none !important;
+}
+
+html.startup-history-hidden #history-toggle-button,
+html.startup-settings-hidden #settings-toggle-button {
+  filter: grayscale(100%) opacity(0.35);
+}
+
+html.startup-history-collapsed .history-pane .collapse-icon,
+html.startup-settings-collapsed .settings-pane .collapse-icon {
+  transform: rotate(-90deg);
+}
+
+@media (max-width: 576px) {
+  html.startup-history-collapsed .history-list-pane,
+  html.startup-history-collapsed .history-pane .clear-history-button,
+  html.startup-settings-collapsed .settings-pane > p {
+    display: none;
+  }
+
+  html.startup-history-collapsed .history-pane .pane-header,
+  html.startup-settings-collapsed .settings-pane .pane-header {
+    justify-content: center;
+  }
+
+  html.startup-history-collapsed .history-pane h3,
+  html.startup-settings-collapsed .settings-pane h3 {
+    margin: 0 auto;
+  }
+}

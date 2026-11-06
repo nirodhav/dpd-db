@@ -42,27 +42,12 @@ var fontSizeDisplay = document.getElementById("font-size-display");
 let dpdResultsContent = "";
 let language;
 
-const startMessage = `
-        <p class="message">Search for Pāḷi or English words above using <b>Unicode</b> or <b>Velthuis</b> characters.</p>
-        <p class="message"><b>Double click</b> on any word to search for it.</p>
-        <p class="message">Adjust the <b>settings</b> to suit your preferences.</p>
-        <p class="message"><b>Refresh</b> the page if you experience any problems.</p>
-        <p class="message">
-            <a href="https://docs.dpdict.net/webapp/" target="_blank">Click here</a>
-            for more details about this website or
-            <a href="https://docs.dpdict.net/" target="_blank">more information</a>
-            about DPD in general.
-        </p>
-        <p class="message">Start by <b>double clicking</b> on any word in the list below:</p>
-        <p class="message">atthi kāmarāgapariyuṭṭhitena peace kar gacchatīti Root ✓</p>
-        `;
-
 //// load state
 
 function loadToggleState(id) {
-  var savedState = localStorage.getItem(id);
-  if (savedState !== null) {
-    document.getElementById(id).checked = JSON.parse(savedState);
+  const savedState = window.dpdReadPreference(id);
+  if (savedState === "true" || savedState === "false") {
+    document.getElementById(id).checked = savedState === "true";
   }
 }
 
@@ -70,10 +55,6 @@ function loadToggleState(id) {
 document.addEventListener("DOMContentLoaded", function () {
   const htmlElement = document.documentElement;
   language = htmlElement.lang || "en";
-
-  if (dpdResults.innerHTML.trim() === "") {
-    dpdResults.innerHTML = startMessage;
-  }
 
   // Set the toggle switch to the correct state and apply the theme
   try {
@@ -323,7 +304,7 @@ function expandSelectionToWord() {
 //// font size ////
 
 function loadFontSize() {
-  fontSize = localStorage.getItem("fontSize");
+  fontSize = window.dpdReadPreference("fontSize");
   if (fontSize === null) {
     bodyStyle = window.getComputedStyle(document.body);
     fontSize = parseInt(bodyStyle.getPropertyValue("font-size"), 10);
@@ -333,7 +314,11 @@ function loadFontSize() {
 }
 
 function saveFontSize() {
-  localStorage.setItem("fontSize", fontSize);
+  try {
+    localStorage.setItem("fontSize", fontSize);
+  } catch (e) {
+    // Font controls still work when storage is unavailable.
+  }
 }
 
 function setFontSize() {
@@ -619,7 +604,13 @@ clearButton.addEventListener("click", clearSearch);
 function initCollapseToggle(toggleButton, paneElement) {
   if (!toggleButton || !paneElement) return;
 
-  const isMobile = window.innerWidth <= 576;
+  const root = document.documentElement;
+  const startupClass = "startup-" + paneElement.id.replace("-pane", "") + "-collapsed";
+  // CSS applies the prepaint preference responsively. Recheck the viewport here
+  // in case it changed while scripts were downloading.
+  const isMobile = window.matchMedia("(max-width: 576px)").matches;
+  paneElement.classList.toggle("collapsed", isMobile && root.classList.contains(startupClass));
+  root.classList.remove(startupClass);
 
   const handleToggle = function () {
     paneElement.classList.toggle("collapsed");
@@ -641,17 +632,6 @@ function initCollapseToggle(toggleButton, paneElement) {
       }
     });
   }
-
-  if (!isMobile) {
-    return;
-  }
-
-  const savedState = localStorage.getItem(paneElement.id + "_collapsed");
-  if (savedState === "true") {
-    paneElement.classList.add("collapsed");
-  } else if (savedState === null) {
-    paneElement.classList.add("collapsed");
-  }
 }
 
 function initPanelToggle(buttonId, paneId, storageKey) {
@@ -659,13 +639,12 @@ function initPanelToggle(buttonId, paneId, storageKey) {
   const pane = document.getElementById(paneId) || document.querySelector("." + paneId);
   if (!button || !pane) return;
 
-  try {
-    const saved = localStorage.getItem(storageKey);
-    if (saved === "false") {
-      pane.classList.add("panel-hidden");
-      button.classList.add("inactive");
-    }
-  } catch (e) {}
+  const root = document.documentElement;
+  const startupClass = "startup-" + paneId.replace("-pane", "") + "-hidden";
+  const hidden = root.classList.contains(startupClass);
+  pane.classList.toggle("panel-hidden", hidden);
+  button.classList.toggle("inactive", hidden);
+  root.classList.remove(startupClass);
 
   button.addEventListener("click", function () {
     const isVisible = !pane.classList.contains("panel-hidden");
