@@ -152,7 +152,7 @@
             </div>
             <div class="dpd-pane" id="dpd-pane">
                 <div class="summary-results" id="summary-results"></div>
-                <div class="dpd-results" id="dpd-results">{% if dpd_results %}{{ dpd_results|safe }}{% elif not request.query_params.get('q', '') %}{% include 'welcome.html' %}{% endif %}</div>
+                <div class="dpd-results" id="dpd-results">{% if dpd_results %}{{ dpd_results|safe }}{% elif (request.query_params.get('tab') or 'dpd') == 'dpd' and not request.query_params.get('q', '') %}{% include 'welcome.html' %}{% endif %}</div>
             </div>
             <div class="settings-pane" id="settings-pane">
                 <div class="pane-header">
