@@ -66,7 +66,7 @@
 @font-face {
   font-family: "Serif Noto";
   font-weight: 400;
-  src: local("Noto Serif"), local("NotoSerif");
+  src: local("Noto Serif"), local("NotoSerif"), local("Noto Serif Regular"), local("NotoSerif-Regular");
   size-adjust: 97.8%;
   ascent-override: 105.93%;
   descent-override: 34.25%;
