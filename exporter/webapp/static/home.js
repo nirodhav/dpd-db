@@ -452,17 +452,10 @@ sansSerifToggle.addEventListener("change", function () {
 });
 
 function swopSansSerif() {
-  const serifFonts = "'Source Serif 4', serif"; // Use Source Serif 4 here
-  const sansFonts = "'Inter', sans-serif"; // Use Inter font here
-  if (sansSerifToggle.checked) {
-    document.body.style.fontFamily = serifFonts;
-    searchBox.style.fontFamily = serifFonts;
-    searchButton.style.fontFamily = serifFonts;
-  } else {
-    document.body.style.fontFamily = sansFonts;
-    searchBox.style.fontFamily = sansFonts;
-    searchButton.style.fontFamily = sansFonts;
-  }
+  document.documentElement.classList.toggle(
+    "serif-font",
+    sansSerifToggle.checked,
+  );
 }
 
 //// niggahita

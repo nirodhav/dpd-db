@@ -34,6 +34,16 @@
 </head>
 
 <body>
+    <script>
+        // Applies the saved serif choice before the first paint
+        try {
+            if (localStorage.getItem("sans-serif-toggle") === "true") {
+                document.documentElement.classList.add("serif-font");
+            }
+        } catch (e) {
+            console.log("LocalStorage is not available.", e);
+        }
+    </script>
     <div class="top-controls">
         <div class="tab-buttons">
             <button class="tab-link active" data-tab="dpd-tab">DPD</button>
