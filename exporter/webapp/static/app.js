@@ -3,6 +3,8 @@ const appState = {
   dpd: {
     searchTerm: "",
     resultsHTML: "",
+    // Contents of hidden panels, keyed by panel id, built only when opened.
+    panels: {},
   },
   bd: {
     searchTerm1: "",
@@ -244,7 +246,7 @@ async function performSearch(addHistory = true, syncTerms = true) {
         }
 
         const response = await fetch(
-          `/search_json?q=${encodeURIComponent(appState.dpd.searchTerm)}`
+          `/search_json?q=${encodeURIComponent(appState.dpd.searchTerm)}&lazy=1`
         );
         if (!response.ok) throw await responseError(response);
         const data = await response.json();
@@ -283,6 +285,7 @@ async function performSearch(addHistory = true, syncTerms = true) {
         // Create a temporary div to manipulate the HTML before storing it
         const dpdDiv = document.createElement("div");
         dpdDiv.innerHTML = data.dpd_html;
+        appState.dpd.panels = data.panels || {};
 
         // Apply grammar toggle settings to newly loaded content
         const grammarToggle = document.getElementById("grammar-toggle");
@@ -295,6 +298,7 @@ async function performSearch(addHistory = true, syncTerms = true) {
             button.classList.add("active");
           });
           grammarDivs.forEach((div) => {
+            fillPanel(div, false);
             div.classList.remove("hidden");
           });
         }
@@ -310,6 +314,7 @@ async function performSearch(addHistory = true, syncTerms = true) {
             button.classList.add("active");
           });
           exampleDivs.forEach((div) => {
+            fillPanel(div, false);
             div.classList.remove("hidden");
           });
         }
@@ -1400,6 +1405,37 @@ function restoreHistoryState(index) {
 }
 
 // Function to highlight matching inflections in tables
+// Hidden panels arrive empty, with their contents in appState.dpd.panels (see
+// lazy_panels.py), so a search builds only what is shown. A panel is built the
+// first time it's opened. wrap is false when the caller wraps apostrophes in
+// the whole results afterwards.
+function fillPanel(panel, wrap = true) {
+  const html = appState.dpd.panels[panel.id];
+  if (html === undefined || panel.childNodes.length) return false;
+  panel.innerHTML = wrap ? wrapApostrophesInHTML(html) : html;
+  return true;
+}
+
+function openPanels(panels) {
+  let filled = false;
+  for (const panel of panels) {
+    if (panel && fillPanel(panel)) filled = true;
+  }
+  if (!filled) return;
+  highlightInflections(appState.dpd.searchTerm);
+  if (typeof window.initSorter === "function") {
+    window.initSorter();
+  }
+}
+window.openPanels = openPanels;
+
+// Printing shows every panel, so build them all first.
+window.addEventListener("beforeprint", () => {
+  openPanels(
+    Object.keys(appState.dpd.panels).map((id) => document.getElementById(id))
+  );
+});
+
 function highlightInflections(searchTerm) {
   if (!searchTerm) return;
 

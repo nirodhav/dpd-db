@@ -491,6 +491,7 @@ grammarToggle.addEventListener("change", function () {
   const grammarButtons = document.getElementsByName("grammar-button");
   const grammarDivs = document.getElementsByName("grammar-div");
   if (this.checked) {
+    openPanels([...grammarDivs]);
     grammarButtons.forEach((button) => {
       button.classList.add("active");
     });
@@ -513,6 +514,7 @@ exampleToggle.addEventListener("change", function () {
   const exampleButtons = document.getElementsByName("example-button");
   const exampleDivs = document.getElementsByName("example-div");
   if (this.checked) {
+    openPanels([...exampleDivs]);
     exampleButtons.forEach((button) => {
       button.classList.add("active");
     });
