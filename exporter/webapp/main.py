@@ -346,7 +346,7 @@ def tt_search(request: Request, q: str, book: str, lang: str):
 
 
 @app.get("/audio/{headword}", response_class=Response)
-def get_audio(request: Request, headword: str, gender: str = "male"):
+def get_audio(request: Request, headword: str, gender: str = "male") -> Response:
     """Serve audio file for a headword with byte-range support."""
 
     cleaned_headword = re.sub(r" \d.*$", "", headword)
@@ -361,12 +361,13 @@ def get_audio(request: Request, headword: str, gender: str = "male"):
         }
 
         if range_header:
-            match = re.match(r"bytes=(\d{1,15})-(\d{0,15})", range_header)
+            match = re.fullmatch(r"bytes=(\d{1,15})-(\d{0,15})", range_header)
             if match:
                 start = int(match.group(1))
                 end = int(match.group(2)) if match.group(2) else file_size - 1
 
-                if start < file_size:
+                if start <= end and start < file_size:
+                    end = min(end, file_size - 1)
                     chunk = audio_data[start : end + 1]
                     headers["Content-Range"] = f"bytes {start}-{end}/{file_size}"
                     headers["Content-Length"] = str(len(chunk))
