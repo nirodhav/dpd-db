@@ -376,6 +376,9 @@ async function performSearch(addHistory = true, syncTerms = true) {
     showSearchError(requestTab, error.busyMessage);
   } finally {
     if (activeBtnId && !isStale()) endRequest(requestTab);
+    // Set by home.html on a deep link. Failed and cancelled searches release
+    // it too, so the panes never stay hidden.
+    document.documentElement.classList.remove("search-pending");
   }
 }
 

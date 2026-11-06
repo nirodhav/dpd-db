@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ lang if lang else 'en' }}">
+<html lang="{{ lang if lang else 'en' }}"{% if not dpd_results and request.query_params.get('tab', 'dpd') == 'dpd' and request.query_params.get('q', '').strip() %} class="search-pending"{% endif %}>
 
 <head>
     <meta charset="UTF-8" />
