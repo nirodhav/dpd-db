@@ -605,6 +605,7 @@ function clearSearch() {
     cancelRequests(["dpd"]);
     appState.dpd.searchTerm = "";
     appState.dpd.resultsHTML = "";
+    appState.dpd.panels = {};
     appState.dpd.needsRefetch = false;
     appState.dpd.error = "";
   }

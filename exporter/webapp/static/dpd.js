@@ -26,7 +26,9 @@ window.playAudio = playAudio;
 document.addEventListener("click", function (event) {
     var playButton = event.target.closest(".dpd-button.play");
     if (playButton) {
-        var headword = playButton.getAttribute("data-headword");
+        const audioHeadword = playButton.getAttribute("data-audio-headword");
+        var headword = audioHeadword
+            ? decodeURIComponent(audioHeadword) : playButton.getAttribute("data-headword");
         var gender = playButton.getAttribute("data-gender");
         if (headword) {
             playAudio(headword, gender);

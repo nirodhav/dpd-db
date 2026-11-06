@@ -265,7 +265,7 @@ async function performSearch(addHistory = true, syncTerms = true) {
             } else {
               summaryResults.innerHTML = '<h3 class="dpd">Сводка</h3>';
             }
-            summaryResults.innerHTML += data.summary_html;
+            summaryResults.innerHTML += applyNiggahitaPreference(data.summary_html);
             summaryResults.innerHTML += "<hr class=\"dpd\">";
           } else {
             summaryResults.innerHTML = "";
@@ -286,6 +286,13 @@ async function performSearch(addHistory = true, syncTerms = true) {
         const dpdDiv = document.createElement("div");
         dpdDiv.innerHTML = data.dpd_html;
         appState.dpd.panels = data.panels || {};
+        for (const panel of dpdDiv.querySelectorAll(".hidden[id]")) {
+          if (Object.prototype.hasOwnProperty.call(appState.dpd.panels, panel.id)) {
+            // The niggahīta toggle rewrites DOM ids. Keep an ASCII key that
+            // survives those changes and serialization into resultsHTML.
+            panel.dataset.panelId = encodeURIComponent(panel.id);
+          }
+        }
 
         // Apply grammar toggle settings to newly loaded content
         const grammarToggle = document.getElementById("grammar-toggle");
@@ -515,7 +522,7 @@ function render(keepForm = false) {
         `;
       dpdResults.innerHTML = startMessage;
     } else {
-      dpdResults.innerHTML = appState.dpd.resultsHTML;
+      dpdResults.innerHTML = applyNiggahitaPreference(appState.dpd.resultsHTML);
     }
     // Apply sandhi toggle to the newly rendered content
     showHideSandhi();
@@ -790,7 +797,11 @@ function handlePopState(event) {
       resultsHTML: keep ? current.resultsHTML : "",
       needsRefetch: tab !== state.activeTab && hasResults && !keep,
     };
-    if (tab === "dpd") keptDpdResults = keep;
+    if (tab === "dpd") {
+      // The retained HTML contains empty shells, so keep its contents too.
+      appState.dpd.panels = keep ? current.panels || {} : {};
+      keptDpdResults = keep;
+    }
   }
   const summary = document.getElementById("summary-results");
   if (summary && !keptDpdResults) summary.innerHTML = "";
@@ -1206,6 +1217,12 @@ function wrapApostrophesInHTML(html) {
   // Create a temporary div to manipulate the HTML
   const tempDiv = document.createElement("div");
   tempDiv.innerHTML = html;
+  for (const button of tempDiv.querySelectorAll("[data-headword]")) {
+    // Display spelling can change, but audio must request the server's key.
+    if (!button.dataset.audioHeadword) {
+      button.dataset.audioHeadword = encodeURIComponent(button.dataset.headword);
+    }
+  }
 
   // Get all text nodes in the element
   const walker = document.createTreeWalker(
@@ -1404,15 +1421,26 @@ function restoreHistoryState(index) {
   }
 }
 
-// Function to highlight matching inflections in tables
+// Apply the current text form to both restored results and newly built panels.
+function applyNiggahitaPreference(html) {
+  return document.getElementById("niggahita-toggle")?.checked
+    ? html.replace(/ṃ/g, "ṁ")
+    : html.replace(/ṁ/g, "ṃ");
+}
+
 // Hidden panels arrive empty, with their contents in appState.dpd.panels (see
 // lazy_panels.py), so a search builds only what is shown. A panel is built the
 // first time it's opened. wrap is false when the caller wraps apostrophes in
 // the whole results afterwards.
 function fillPanel(panel, wrap = true) {
-  const html = appState.dpd.panels[panel.id];
+  const key = panel.dataset.panelId
+    ? decodeURIComponent(panel.dataset.panelId) : panel.id;
+  const html = appState.dpd.panels[key];
   if (html === undefined || panel.childNodes.length) return false;
-  panel.innerHTML = wrap ? wrapApostrophesInHTML(html) : html;
+  // On initial loading, the caller wraps the whole result before rendering.
+  // Preserve the original audio keys before applying the display preference.
+  panel.innerHTML = wrap
+    ? applyNiggahitaPreference(wrapApostrophesInHTML(html)) : html;
   return true;
 }
 
@@ -1432,17 +1460,18 @@ window.openPanels = openPanels;
 // Printing shows every panel, so build them all first.
 window.addEventListener("beforeprint", () => {
   openPanels(
-    Object.keys(appState.dpd.panels).map((id) => document.getElementById(id))
+    document.querySelectorAll("#dpd-results [data-panel-id]")
   );
 });
 
+// Function to highlight matching inflections in tables
 function highlightInflections(searchTerm) {
   if (!searchTerm) return;
 
   // Normalize the incoming searchTerm to text
   const tempDiv = document.createElement("div");
   tempDiv.textContent = searchTerm;
-  const normalizedSearch = tempDiv.textContent;
+  const normalizedSearch = applyNiggahitaPreference(tempDiv.textContent);
 
   // Find all inflection tables
   const inflectionTables = document.querySelectorAll("table.inflection");
