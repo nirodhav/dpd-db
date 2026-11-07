@@ -12,7 +12,7 @@ from fastapi.responses import (
     RedirectResponse,
     Response,
 )
-from exporter.webapp.precompressed_index import IndexStaticFiles
+from exporter.webapp.precompressed_index import IndexStaticFiles, digest
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.exc import OperationalError
 from starlette.convertors import Convertor, register_url_convertor
@@ -93,7 +93,17 @@ templates = Jinja2Templates(directory=str(pth.webapp_templates_dir))
 # pyrefly: ignore  # jinja2 leaves Environment.globals unannotated, so its value
 # type infers as the union of jinja's own defaults; extending it is the
 # documented usage.
-templates.env.globals["show_tbw"] = config_test("dictionary", "show_tbw", "yes")
+templates.env.globals.update(
+    {
+        "show_tbw": config_test("dictionary", "show_tbw", "yes"),
+        "webapp_asset_version": digest(
+            b"\0".join(
+                (pth.webapp_static_dir / name).read_bytes()
+                for name in ("app.js", "home.js", "dpd.js", "home.css")
+            )
+        ),
+    }
+)
 
 # Update CSS
 css_manager = CSSManager()
