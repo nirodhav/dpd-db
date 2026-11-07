@@ -1,3 +1,4 @@
+from pathlib import Path
 import sys
 from unittest.mock import MagicMock, patch
 import pytest
@@ -27,7 +28,7 @@ def update_history_mock():
             patch("builtins.open", create=True) as mock_open,
         ):
             mock_paths = MockPaths.return_value
-            mock_paths.webapp_static_dir = "."  # Use current dir to bypass exists check
+            mock_paths.webapp_static_dir = Path("exporter/webapp/static")
             mock_paths.webapp_templates_dir = "templates"
             mock_paths.webapp_css_path = "style.css"
             mock_paths.webapp_js_path = "script.js"
