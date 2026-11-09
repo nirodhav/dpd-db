@@ -349,3 +349,15 @@
   /* Keep text dark for contrast on yellow */
   background-color: #ffeb3b;
 }
+
+/* Rows off screen skip layout until scrolled near; sizes are typical row heights. */
+.tt-item {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 220px;
+}
+
+@media (max-width: 750px) {
+  .tt-item {
+    contain-intrinsic-size: auto 600px;
+  }
+}

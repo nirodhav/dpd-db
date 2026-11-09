@@ -1364,3 +1364,12 @@ html.startup-settings-collapsed .settings-pane .collapse-icon {
     margin: 0 auto;
   }
 }
+
+/* Rows off screen skip layout until scrolled near (phone layout only: on wider
+   screens the rows are table rows, which this doesn't apply to). */
+@media (max-width: 750px) {
+  .bd-tbody .bd-row {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 400px;
+  }
+}
