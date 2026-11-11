@@ -5,7 +5,6 @@ import anyio
 import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import (
     HTMLResponse,
     JSONResponse,
@@ -23,7 +22,10 @@ from db.db_helpers import get_db_session
 from db.models import BoldDefinition, DbInfo
 from audio.db.db_helpers import get_audio_record
 from exporter.webapp.lazy_panels import split_hidden_panels
-from exporter.webapp.response_encoding import encode_search_response
+from exporter.webapp.response_encoding import (
+    RangeSafeGZipMiddleware,
+    encode_search_response,
+)
 from exporter.webapp.preloads import (
     make_ascii_to_unicode_dict,
     make_headwords_clean_set,
@@ -54,7 +56,7 @@ app.add_middleware(
     allow_methods=["GET"],
     expose_headers=["Link"],
 )
-app.add_middleware(GZipMiddleware, minimum_size=500)
+app.add_middleware(RangeSafeGZipMiddleware, minimum_size=500)
 app.mount(
     "/static", IndexStaticFiles(directory=str(pth.webapp_static_dir)), name="static"
 )
@@ -402,7 +404,8 @@ def get_audio(request: Request, headword: str, gender: str = "male"):
                 start = int(match.group(1))
                 end = int(match.group(2)) if match.group(2) else file_size - 1
 
-                if start < file_size:
+                if start <= end and start < file_size:
+                    end = min(end, file_size - 1)
                     chunk = audio_data[start : end + 1]
                     headers["Content-Range"] = f"bytes {start}-{end}/{file_size}"
                     headers["Content-Length"] = str(len(chunk))

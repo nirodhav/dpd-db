@@ -5,9 +5,12 @@ import pytest
 from fastapi import FastAPI, Request
 from fastapi.testclient import TestClient
 from starlette.middleware.gzip import GZipMiddleware
-from starlette.responses import JSONResponse
+from starlette.responses import JSONResponse, Response
 
-from exporter.webapp.response_encoding import encode_search_response
+from exporter.webapp.response_encoding import (
+    RangeSafeGZipMiddleware,
+    encode_search_response,
+)
 
 
 @pytest.mark.parametrize(
@@ -63,3 +66,37 @@ def test_repeated_headers_and_existing_encoding() -> None:
     body = response.body
     encode_search_response(request, response)
     assert response.body == body
+
+
+def range_app() -> TestClient:
+    app = FastAPI()
+    app.add_middleware(RangeSafeGZipMiddleware, minimum_size=500)
+    body = b"0123456789" * 1000
+
+    @app.get("/file")
+    def file(request: Request) -> Response:
+        if request.headers.get("range") == "bytes=1000-8999":
+            return Response(
+                body[1000:9000],
+                status_code=206,
+                headers={"Content-Range": f"bytes 1000-8999/{len(body)}"},
+            )
+        return Response(body)
+
+    return TestClient(app)
+
+
+def test_ranged_reply_is_not_gzipped() -> None:
+    response = range_app().get(
+        "/file", headers={"Range": "bytes=1000-8999", "Accept-Encoding": "gzip"}
+    )
+    assert response.status_code == 206
+    assert "content-encoding" not in response.headers
+    assert response.headers["content-length"] == "8000"
+    assert response.content == (b"0123456789" * 1000)[1000:9000]
+
+
+def test_whole_reply_is_still_gzipped() -> None:
+    response = range_app().get("/file", headers={"Accept-Encoding": "gzip"})
+    assert response.status_code == 200
+    assert response.headers["content-encoding"] == "gzip"

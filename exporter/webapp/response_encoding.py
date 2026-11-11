@@ -4,8 +4,10 @@ import re
 
 import brotli
 from starlette.datastructures import Headers
+from starlette.middleware.gzip import GZipMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse
+from starlette.types import Receive, Scope, Send
 
 BROTLI_MIN_BYTES = 32 * 1024
 BROTLI_MAX_BYTES = 16 * 1024 * 1024
@@ -39,3 +41,19 @@ def encode_search_response(request: Request, response: JSONResponse) -> JSONResp
         response.headers["Content-Encoding"] = "br"
         response.headers["Content-Length"] = str(len(response.body))
     return response
+
+
+class RangeSafeGZipMiddleware(GZipMiddleware):
+    """Gzip that leaves ranged requests alone.
+
+    A 206 reply's Content-Range counts the bytes of the uncompressed file, so
+    compressing the slice sends bytes that don't match it (audio and static
+    files both answer ranges)."""
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] == "http" and any(
+            name == b"range" for name, _ in scope["headers"]
+        ):
+            await self.app(scope, receive, send)
+            return
+        await super().__call__(scope, receive, send)
